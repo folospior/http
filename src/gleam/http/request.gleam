@@ -21,20 +21,29 @@ pub type Request(body) {
     host: String,
     port: Option(Int),
     path: String,
-    query: Option(String),
+    query: List(#(String, String)),
   )
 }
 
 /// Return the uri that a request was sent to.
 ///
 pub fn to_uri(request: Request(body)) -> Uri {
+  let query =
+    request.query
+    |> uri.query_to_string
+
+  let query = case query {
+    "" -> option.None
+    _ -> option.Some(query)
+  }
+
   Uri(
     scheme: option.Some(http.scheme_to_string(request.scheme)),
     userinfo: option.None,
     host: option.Some(request.host),
     port: request.port,
     path: request.path,
-    query: request.query,
+    query:,
     fragment: option.None,
   )
 }
@@ -51,6 +60,14 @@ pub fn from_uri(uri: Uri) -> Result(Request(String), Nil) {
     uri.host
     |> option.to_result(Nil),
   )
+
+  let query = case uri.query {
+    option.Some(query) -> uri.parse_query(query)
+    option.None -> Ok([])
+  }
+
+  use query <- result.try(query)
+
   let req =
     Request(
       method: Get,
@@ -60,7 +77,7 @@ pub fn from_uri(uri: Uri) -> Result(Request(String), Nil) {
       host:,
       port: uri.port,
       path: uri.path,
-      query: uri.query,
+      query:,
     )
   Ok(req)
 }
@@ -142,16 +159,6 @@ pub fn path_segments(request: Request(body)) -> List(String) {
   |> uri.path_segments
 }
 
-/// Decode the query of a request.
-pub fn get_query(
-  request: Request(body),
-) -> Result(List(#(String, String)), Nil) {
-  case request.query {
-    option.Some(query_string) -> uri.parse_query(query_string)
-    option.None -> Ok([])
-  }
-}
-
 /// Set the query of the request.
 /// Query params will be percent encoded before being added to the Request.
 ///
@@ -159,15 +166,16 @@ pub fn set_query(
   req: Request(body),
   query: List(#(String, String)),
 ) -> Request(body) {
-  let query =
-    list.map(query, fn(pair) {
-      let #(key, value) = pair
-      uri.percent_encode(key) <> "=" <> uri.percent_encode(value)
-    })
-    |> string.join(with: "&")
-    |> option.Some
-
   Request(..req, query:)
+}
+
+/// Prepends a query parameter to the request's query.
+///
+pub fn prepend_query(
+  req: Request(body),
+  parameter parameter: #(String, String),
+) -> Request(body) {
+  Request(..req, query: [parameter, ..req.query])
 }
 
 /// Set the method of the request.
@@ -188,7 +196,7 @@ pub fn new() -> Request(String) {
     host: "localhost",
     port: option.None,
     path: "",
-    query: option.None,
+    query: [],
   )
 }
 
