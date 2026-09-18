@@ -14,7 +14,7 @@ pub fn req_to_uri_test() {
       host: "sky.net",
       port: None,
       path: "/sarah/connor",
-      query: None,
+      query: [],
     )
   }
 
@@ -49,32 +49,36 @@ pub fn req_from_uri_test() {
   let uri =
     Uri(Some("https"), None, Some("sky.net"), None, "/sarah/connor", None, None)
   assert request.from_uri(uri)
-    == Ok(Request(
-      method: http.Get,
-      headers: [],
-      body: "",
-      scheme: http.Https,
-      host: "sky.net",
-      port: None,
-      path: "/sarah/connor",
-      query: None,
-    ))
+    == Ok(
+      Request(
+        method: http.Get,
+        headers: [],
+        body: "",
+        scheme: http.Https,
+        host: "sky.net",
+        port: None,
+        path: "/sarah/connor",
+        query: [],
+      ),
+    )
 }
 
 pub fn req_from_url_test() {
   let url = "https://sky.net/sarah/connor?foo=x%20y"
 
   assert request.to(url)
-    == Ok(Request(
-      method: http.Get,
-      headers: [],
-      body: "",
-      scheme: http.Https,
-      host: "sky.net",
-      port: None,
-      path: "/sarah/connor",
-      query: Some("foo=x%20y"),
-    ))
+    == Ok(
+      Request(
+        method: http.Get,
+        headers: [],
+        body: "",
+        scheme: http.Https,
+        host: "sky.net",
+        port: None,
+        path: "/sarah/connor",
+        query: [#("foo", "x y")],
+      ),
+    )
 }
 
 pub fn path_segments_test() {
@@ -87,34 +91,10 @@ pub fn path_segments_test() {
       host: "nostromo.ship",
       port: None,
       path: "/ellen/ripley",
-      query: None,
+      query: [],
     )
 
   assert ["ellen", "ripley"] == request.path_segments(request)
-}
-
-pub fn get_query_test() {
-  let make_request = fn(query) {
-    Request(
-      method: http.Get,
-      headers: [],
-      body: Nil,
-      scheme: http.Https,
-      host: "example.com",
-      port: None,
-      path: "/",
-      query:,
-    )
-  }
-
-  let request = make_request(Some("foo=x%20y"))
-  assert Ok([#("foo", "x y")]) == request.get_query(request)
-
-  let request = make_request(None)
-  assert Ok([]) == request.get_query(request)
-
-  let request = make_request(Some("foo=%!2"))
-  assert Error(Nil) == request.get_query(request)
 }
 
 pub fn set_query_test() {
@@ -127,20 +107,20 @@ pub fn set_query_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
 
   let query = [#("answer", "42"), #("test", "123")]
   let updated_request = request.set_query(request, query)
-  assert updated_request.query == Some("answer=42&test=123")
+  assert updated_request.query == [#("answer", "42"), #("test", "123")]
 
   let empty_query = []
   let updated_request = request.set_query(request, empty_query)
-  assert updated_request.query == Some("")
+  assert updated_request.query == []
 
   let query = [#("foo bar", "x y")]
   let updated_request = request.set_query(request, query)
-  assert updated_request.query == Some("foo%20bar=x%20y")
+  assert updated_request.query == [#("foo bar", "x y")]
 }
 
 pub fn get_req_header_test() {
@@ -153,7 +133,7 @@ pub fn get_req_header_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
   }
 
@@ -182,7 +162,7 @@ pub fn set_req_body_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
 
   let updated_request =
@@ -202,7 +182,7 @@ pub fn set_method_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
 
   let updated_request_method = http.Post
@@ -286,7 +266,7 @@ pub fn set_req_header_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
     |> request.set_header("gleam", "awesome")
 
@@ -310,7 +290,7 @@ pub fn set_request_header_maintains_value_casing_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
     |> request.set_header("gleam", "UPPERCASE_AWESOME")
 
@@ -327,7 +307,7 @@ pub fn set_request_header_lowercases_key_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
     |> request.set_header("UPPERCASE_GLEAM", "awesome")
 
@@ -345,7 +325,7 @@ pub fn prepend_req_header_test() {
       host: "example.com",
       port: None,
       path: "/",
-      query: None,
+      query: [],
     )
     |> request.prepend_header("answer", "42")
 
